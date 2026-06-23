@@ -10,7 +10,7 @@
 
 # Test binary, built with `go test -c`
 *.test
-
+placeholder.txt
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
