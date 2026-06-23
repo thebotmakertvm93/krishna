@@ -185,6 +185,9 @@ func (y *YtdlpPlatform) Download(
 			cookieFile != "" {
 			args = append(args, "--cookies", cookieFile)
 		}
+		
+		// Bypasses YouTube's server network blocks by mimicking web clients
+		args = append(args, "--extractor-args", "youtube:player-client=default,-tv,web_safari,web_embedded")
 	}
 
 	args = append(args, track.URL)
@@ -246,6 +249,9 @@ func (y *YtdlpPlatform) extractMetadata(urlStr string) (*ytdlpInfo, error) {
 		if err == nil && cookieFile != "" {
 			args = append(args, "--cookies", cookieFile)
 		}
+		
+		// Bypasses YouTube's server network blocks by mimicking web clients
+		args = append(args, "--extractor-args", "youtube:player-client=default,-tv,web_safari,web_embedded")
 	}
 
 	args = append(args, urlStr)
