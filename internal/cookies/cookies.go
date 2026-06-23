@@ -30,11 +30,17 @@ var (
 	client      = resty.New()
 )
 
+// This embeds any .txt file (like placeholder.txt) placed directly in this folder
 //go:embed *.txt
 var embeddedCookies embed.FS
 
 func init() {
 	gologging.Debug("🔹 Initializing cookies...")
+
+	// FIX 1: Automatically create the directory if Render cleared it
+	if err := os.MkdirAll(cookieDir, 0o755); err != nil {
+		gologging.Fatal("Failed to create cookie directory:", err)
+	}
 
 	if err := copyEmbeddedCookies(); err != nil {
 		gologging.Fatal("Failed to copy embedded cookies:", err)
@@ -59,7 +65,6 @@ func copyEmbeddedCookies() error {
 	}
 
 	for _, e := range entries {
-
 		if e.IsDir() || e.Name() == "example.txt" {
 			continue
 		}
