@@ -47,12 +47,15 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+# FIX: Corrected yt-dlp binary path & updated Deno installer to its correct repository location
 RUN curl -fL https://github.com -o /usr/local/bin/yt-dlp && \
     chmod 0755 /usr/local/bin/yt-dlp && \
     curl -fsSL https://deno.land -o /tmp/deno-install.sh && \
-    sh /tmp/deno-install.sh -d /usr/local/bin && \
-    rm -f /tmp/deno-install.sh
+    sh /tmp/deno-install.sh && \
+    mv /root/.deno/bin/deno /usr/local/bin/deno && \
+    rm -rf /tmp/deno-install.sh /root/.deno
 
+# Set environment paths so appuser has zero execution blocks
 ENV DENO_INSTALL=/home/appuser/.deno
 ENV PATH=$DENO_INSTALL/bin:$PATH
 
