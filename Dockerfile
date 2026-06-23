@@ -62,7 +62,10 @@ RUN mkdir -p /app/cache /home/appuser/.cache && \
     chown -R appuser:appuser /app/cache /home/appuser/.cache
 
 COPY --from=builder /build/app /app/app
-RUN chmod +x /app/app
+
+# FIX: Give appuser ownership of the /app directory so it can create logs.txt
+RUN chown -R appuser:appuser /app && \
+    chmod +x /app/app
 
 EXPOSE 10000
 
