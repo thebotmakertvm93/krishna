@@ -1,9 +1,9 @@
 {
-    "name": "ArcMusic",
+    "name": "krishna",
     "description": "A Telegram bot that streams music into group voice chats with seamless playback and control.",
     "keywords": ["telegram", "bot", "music", "go", "voice-chat"],
-    "repository": "https://github.com/tusar404/ArcMusic",
-    "website": "https://github.com/tusar404/ArcMusic",
+    "repository": "https://github.com/thebotmakertvm93/krishna",
+    "website": "https://github.com/thebotmakertvm93/krishna",
     "stack": "container",
     "env": {
         "API_ID": {
@@ -73,12 +73,12 @@
         },
         "SUPPORT_CHAT": {
             "description": "The URL of your support chat.",
-            "value": "https://t.me/ArcChatz",
+            "value": "https://t.me/KURUK_SHE_TRA",
             "required": false
         },
         "SUPPORT_CHANNEL": {
             "description": "The URL of your support channel.",
-            "value": "https://t.me/ArcUpdates",
+            "value": "https://t.me/Energy_level100",
             "required": false
         },
         "COOKIES_LINK": {
