@@ -1,0 +1,11 @@
+services:
+  - type: worker
+    name: telegram-music-bot
+    env: go
+    buildCommand: go build -o bot .
+    startCommand: ./bot
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GO_VERSION
+        value: 1.22.0
