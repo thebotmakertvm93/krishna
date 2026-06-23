@@ -1,4 +1,4 @@
-<h1 align="center">🎧 <b>ArcMusic</b></h1>
+<h1 align="center">🎧 <b>Krishna Music</b></h1>
 
 <p align="center">
   <i>A blazing-fast, reliable, and feature-packed Telegram bot for streaming music in group voice chats — built with Go.</i>
@@ -17,11 +17,8 @@
   <a href="https://github.com/tusar404/ArcMusic/stargazers">
     <img src="https://img.shields.io/github/stars/tusar404/ArcMusic?style=for-the-badge&label=Stars&labelColor=000000&color=FFD700&logo=github&logoColor=white" alt="GitHub Stars">
   </a>
-  <a href="https://github.com/tusar404/ArcMusic/fork">
-    <img src="https://img.shields.io/github/forks/tusar404/ArcMusic?style=for-the-badge&label=Forks&labelColor=000000&color=00C853&logo=github&logoColor=white" alt="GitHub Forks">
-  </a>
-
-</p>
+  
+  </p>
 
 ---
 
@@ -32,7 +29,7 @@
 
 Click the button below to deploy **ArcMusic** instantly on Heroku:
 
-<a href="https://heroku.com/deploy?template=https://github.com/tusar404/ArcMusic">
+<a href="https://heroku.com/deploy?template=https://github.com">
   <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku">
 </a>
 
@@ -223,8 +220,8 @@ ArcMusic/
 Found a bug? Have a feature request?
 
 - **Use `/bug` command** in the bot to report directly
-- **Join our [Support Chat](https://t.me/ArcChatz)** for discussions
-- **Open an [Issue on GitHub](https://github.com/tusar404/ArcMusic/issues)**
+- **Join our [Support Chat](https://t.me)** for discussions
+- **Open an [Issue on GitHub](https://github.com)**
 
 ---
 
@@ -256,25 +253,6 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 ```
-
----
-
-## 🙌 Credits
-
-- **Maintainer**: [Tosu](https://github.com/tusar404)
-- **Contributors**: All amazing developers who contributed to this project
-- **Base Repo**: [YukkiMusic](https://github.com/TheTeamVivek/YukkiMusic)
-- **Libraries**: Built with [gogram](https://github.com/AmarnathCJD/gogram), [ntgcalls](https://github.com/pytgcalls/ntgcalls), and more
-
----
-
-## 📞 Support
-
-- **Telegram Support Chat**: [@ArcChatz](https://t.me/ArcChatz)
-- **Updates Channel**: [@ArcUpdates](https://t.me/ArcUpdates)
-- **GitHub Issues**: [Report bugs](https://github.com/tusar404/ArcMusic/issues)
-
----
 
 ## ⚡ Performance Tips
 
