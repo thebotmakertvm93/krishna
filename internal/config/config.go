@@ -108,19 +108,19 @@ func loadConfig() {
 	DurationLimit = int(getInt64("DURATION_LIMIT", 3600)) // In seconds
 	LeaveOnDemoted = getBool("LEAVE_ON_DEMOTED", false)
 	QueueLimit = int(getInt64("QUEUE_LIMIT", 10))
-	SupportChat = getString("SUPPORT_CHAT", "https://t.me/ArcChatz")
-	SupportChannel = getString("SUPPORT_CHANNEL", "https://t.me/ArcUpdates")
+	SupportChat = getString("SUPPORT_CHAT", "https://t.me/KURUK_SHE_TRA")
+	SupportChannel = getString("SUPPORT_CHANNEL", "https://t.me/VRINDA_AVANAM")
 	CookiesLink = getString("COOKIES_LINK", "")
 	SetCmds = getBool("SET_CMDS", true)
 	MaxAuthUsers = int(getInt64("MAX_AUTH_USERS", 25))
 
 	StartImage = getString(
 		"START_IMG_URL",
-		"https://files.catbox.moe/he87u5.jpg",
+		"https://files.catbox.moe/va5jt8.jfif",
 	)
 	PingImage = getString(
 		"PING_IMG_URL",
-		"https://files.catbox.moe/he87u5.jpg",
+		"https://files.catbox.moe/55ta8l.jpg",
 	)
 	Port = getString("PORT", "8000")
 }
