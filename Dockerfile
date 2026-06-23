@@ -25,6 +25,10 @@ COPY . .
 RUN chmod +x install.sh
 RUN ./install.sh -n --quiet --skip-summary
 
+# FIX: Create a fallback empty text file inside internal/cookies if none exist
+# This satisfies the Go compiler's strict //go:embed directive
+RUN mkdir -p internal/cookies && touch internal/cookies/placeholder.txt
+
 # Native CGO compilation with proper pathing definitions
 RUN CGO_ENABLED=1 GOOS=linux go build -v -trimpath -ldflags="-w -s" -o app ./cmd/app/
 
