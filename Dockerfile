@@ -35,12 +35,14 @@ RUN CGO_ENABLED=1 GOOS=linux go build -v -trimpath -ldflags="-w -s" -o app ./cmd
 
 FROM debian:bookworm-slim
 
+# ADJUSTMENT 1: Added python3 to ensure yt-dlp binary unpacks and runs smoothly
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
         curl \
         unzip \
         zlib1g \
+        python3 \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -r -u 10001 -m -d /home/appuser appuser
@@ -54,9 +56,9 @@ RUN curl -fL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o
     mv /root/.deno/bin/deno /usr/local/bin/deno && \
     rm -rf /tmp/deno-install.sh /root/.deno
     
-# Set environment paths so appuser has zero execution blocks
+# ADJUSTMENT 2: Explicitly include standard system paths alongside Deno 
 ENV DENO_INSTALL=/home/appuser/.deno
-ENV PATH=$DENO_INSTALL/bin:$PATH
+ENV PATH=$DENO_INSTALL/bin:/usr/local/bin:/usr/bin:/bin:$PATH
 
 RUN mkdir -p /app/cache /home/appuser/.cache && \
     chown -R appuser:appuser /app/cache /home/appuser/.cache
