@@ -2,11 +2,14 @@ FROM golang:1.26.1-bookworm AS builder
 
 WORKDIR /build
 
-# hadolint ignore=DL3015
+# Install full development tooling needed for strict CGO compiling
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
         git \
         gcc \
+        g++ \
+        build-essential \
+        pkg-config \
         unzip \
         curl \
         zlib1g-dev && \
@@ -18,15 +21,18 @@ RUN go mod download
 COPY install.sh ./
 COPY . .
 
-RUN chmod +x install.sh && \
-    ./install.sh -n --quiet --skip-summary && \
-    CGO_ENABLED=1 go build -v -trimpath -ldflags="-w -s" -o app ./cmd/app/
+# Separate instructions to pinpoint failures in the Render build logs
+RUN chmod +x install.sh
+RUN ./install.sh -n --quiet --skip-summary
+
+# Native CGO compilation with proper pathing definitions
+RUN CGO_ENABLED=1 GOOS=linux go build -v -trimpath -ldflags="-w -s" -o app ./cmd/app/
+
 
 FROM debian:bookworm-slim
 
-# Install system dependencies and create non-root user early
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
         ffmpeg \
         curl \
         unzip \
@@ -35,25 +41,23 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -r -u 10001 -m -d /home/appuser appuser
 
-# Switch to root-owned app folder for binaries
 WORKDIR /app
 
-# Download yt-dlp and Deno directly to global binary paths
-RUN curl -fL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp && \
+RUN curl -fL https://github.com -o /usr/local/bin/yt-dlp && \
     chmod 0755 /usr/local/bin/yt-dlp && \
-    curl -fsSL https://deno.land/install.sh -o /tmp/deno-install.sh && \
+    curl -fsSL https://deno.land -o /tmp/deno-install.sh && \
     sh /tmp/deno-install.sh -d /usr/local/bin && \
     rm -f /tmp/deno-install.sh
 
-# Set up specific runtime cache directories for appuser
+ENV DENO_INSTALL=/home/appuser/.deno
+ENV PATH=$DENO_INSTALL/bin:$PATH
+
 RUN mkdir -p /app/cache /home/appuser/.cache && \
     chown -R appuser:appuser /app/cache /home/appuser/.cache
 
-# Copy built application binary
 COPY --from=builder /build/app /app/app
 RUN chmod +x /app/app
 
-# Expose Render's default routing port (Render overrides this via env)
 EXPOSE 10000
 
 USER appuser
