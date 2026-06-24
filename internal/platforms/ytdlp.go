@@ -1,10 +1,3 @@
-/*
- * ● ArcMusic
- * ○ A high-performance engine for streaming music in Telegram voicechats.
- *
- * Copyright (C) 2026 Team Arc
- */
-
 package platforms
 
 import (
@@ -13,7 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -42,6 +38,18 @@ type ytdlpInfo struct {
 	Description string      `json:"description"`
 	IsLive      bool        `json:"is_live"`
 	Entries     []ytdlpInfo `json:"entries"`
+}
+
+type CobaltRequest struct {
+	URL          string `json:"url"`
+	VideoQuality string `json:"videoQuality"`
+	DownloadMode string `json:"downloadMode"`
+}
+
+type CobaltResponse struct {
+	Status string `json:"status"`
+	URL    string `json:"url"`
+	Text   string `json:"text"`
 }
 
 // URLs that are likely handled by YouTube
@@ -152,6 +160,23 @@ func (y *YtdlpPlatform) Download(
 	}
 
 	gologging.InfoF("YtDlp: Downloading %s", track.Title)
+
+	// Set definitive static targets for stream extraction
+	outputPath := getPath(track, ".mp3")
+	if track.Video {
+		outputPath = getPath(track, ".mp4")
+	}
+
+	// Bypasses local yt-dlp binaries completely for standard audio tracks
+	if !track.Video {
+		gologging.InfoF("YtDlp: Audio requested, bypassing binary via Cobalt API endpoint for: %s", track.URL)
+		err := y.downloadViaCobalt(ctx, track.URL, outputPath)
+		if err == nil {
+			gologging.InfoF("YtDlp: Cobalt extraction completed successfully -> %s", outputPath)
+			return outputPath, nil
+		}
+		gologging.ErrorF("YtDlp: Cobalt node extraction failed: %v. Using fallback binary path...", err)
+	}
 
 	args := []string{
 		"--no-playlist",
@@ -339,3 +364,54 @@ func (y *YtdlpPlatform) isYouTubeURL(urlStr string) bool {
 	}
 	return false
 }
+
+// downloadViaCobalt contacts Cobalt infrastructure to generate an audio payload stream bypass
+func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string, destPath string) error {
+	apiEndpoint := "https://cobalt.tools"
+
+	reqPayload := CobaltRequest{
+		URL:          targetURL,
+		VideoQuality: "720",
+		DownloadMode: "audio",
+	}
+
+	jsonData, err := json.Marshal(reqPayload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", apiEndpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var cobResp CobaltResponse
+	if err := json.NewDecoder(resp.Body).Decode(&cobResp); err != nil {
+		return err
+	}
+
+	if cobResp.Status == "error" || cobResp.URL == "" {
+		return fmt.Errorf("cobalt API internal error: %s", cobResp.Text)
+	}
+
+	fileReq, err := http.NewRequestWithContext(ctx, "GET", cobResp.URL, nil)
+	if err != nil {
+		return err
+	}
+
+	fileResp, err := client.Do(fileReq)
+	if err != nil {
+		return err
+	}
+	defer fileResp.Body.Close()
+
+	if fileResp.StatusCode != http.StatusOK {
