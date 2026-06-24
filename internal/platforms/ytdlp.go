@@ -1,3 +1,10 @@
+/*
+ * ● ArcMusic
+ * ○ A high-performance engine for streaming music in Telegram voicechats.
+ *
+ * Copyright (C) 2026 Team Arc
+ */
+
 package platforms
 
 import (
@@ -161,21 +168,21 @@ func (y *YtdlpPlatform) Download(
 
 	gologging.InfoF("YtDlp: Downloading %s", track.Title)
 
-	// Set definitive static targets for stream extraction
+	// Build definitive static extension file path names
 	outputPath := getPath(track, ".mp3")
 	if track.Video {
 		outputPath = getPath(track, ".mp4")
 	}
 
-	// Bypasses local yt-dlp binaries completely for standard audio tracks
+	// COBALT API BYPASS: Executes for audio files to avoid local binary drops
 	if !track.Video {
-		gologging.InfoF("YtDlp: Audio requested, bypassing binary via Cobalt API endpoint for: %s", track.URL)
+		gologging.InfoF("YtDlp: Bypassing local binary via Cobalt API node for: %s", track.URL)
 		err := y.downloadViaCobalt(ctx, track.URL, outputPath)
 		if err == nil {
 			gologging.InfoF("YtDlp: Cobalt extraction completed successfully -> %s", outputPath)
 			return outputPath, nil
 		}
-		gologging.ErrorF("YtDlp: Cobalt node extraction failed: %v. Using fallback binary path...", err)
+		gologging.ErrorF("YtDlp: Cobalt node extraction failed: %v. Running native binary fallback...", err)
 	}
 
 	args := []string{
@@ -210,9 +217,6 @@ func (y *YtdlpPlatform) Download(
 			cookieFile != "" {
 			args = append(args, "--cookies", cookieFile)
 		}
-		
-		// Bypasses YouTube's server network blocks by mimicking web clients
-		args = append(args, "--extractor-args", "youtube:player-client=default,-tv,web_safari,web_embedded")
 	}
 
 	args = append(args, track.URL)
@@ -274,9 +278,6 @@ func (y *YtdlpPlatform) extractMetadata(urlStr string) (*ytdlpInfo, error) {
 		if err == nil && cookieFile != "" {
 			args = append(args, "--cookies", cookieFile)
 		}
-		
-		// Bypasses YouTube's server network blocks by mimicking web clients
-		args = append(args, "--extractor-args", "youtube:player-client=default,-tv,web_safari,web_embedded")
 	}
 
 	args = append(args, urlStr)
@@ -415,3 +416,15 @@ func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string,
 	defer fileResp.Body.Close()
 
 	if fileResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad audio server response stream code: %d", fileResp.StatusCode)
+	}
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, fileResp.Body)
+	return err
+}
