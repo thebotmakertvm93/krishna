@@ -1,76 +1,34 @@
-FROM golang:1.26.1-bookworm AS builder
+# Step 1: Build the Go application
+FROM golang:1.22-alpine AS builder
 
-WORKDIR /build
-
-# Install full development tooling needed for strict CGO compiling
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        git \
-        gcc \
-        g++ \
-        build-essential \
-        pkg-config \
-        unzip \
-        curl \
-        zlib1g-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY install.sh ./
-COPY . .
-
-# Separate instructions to pinpoint failures in the Render build logs
-RUN chmod +x install.sh
-RUN ./install.sh -n --quiet --skip-summary
-
-# FIX: Create a fallback empty text file inside internal/cookies if none exist
-# This satisfies the Go compiler's strict //go:embed directive
-RUN mkdir -p internal/cookies && touch internal/cookies/placeholder.txt
-
-# Native CGO compilation with proper pathing definitions
-RUN CGO_ENABLED=1 GOOS=linux go build -v -trimpath -ldflags="-w -s" -o app ./cmd/app/
-
-
-FROM debian:bookworm-slim
-
-# ADJUSTMENT 1: Added python3 to ensure yt-dlp binary unpacks and runs smoothly
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        ffmpeg \
-        curl \
-        unzip \
-        zlib1g \
-        python3 \
-        ca-certificates && \
-    rm -rf /var/lib/apt/lists/* && \
-    useradd -r -u 10001 -m -d /home/appuser appuser
+# Install essential build dependencies
+RUN apk add --no-cache git gcc musl-dev cgo
 
 WORKDIR /app
 
-RUN curl -fL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
-    chmod 0755 /usr/local/bin/yt-dlp && \
-    curl -fsSL https://deno.land/x/install/install.sh -o /tmp/deno-install.sh && \
-    sh /tmp/deno-install.sh && \
-    mv /root/.deno/bin/deno /usr/local/bin/deno && \
-    rm -rf /tmp/deno-install.sh /root/.deno
-    
-# ADJUSTMENT 2: Explicitly include standard system paths alongside Deno 
-ENV DENO_INSTALL=/home/appuser/.deno
-ENV PATH=$DENO_INSTALL/bin:/usr/local/bin:/usr/bin:/bin:$PATH
+# Copy dependency configuration files first
+COPY go.mod go.sum ./
+RUN go mod download
 
-RUN mkdir -p /app/cache /home/appuser/.cache && \
-    chown -R appuser:appuser /app/cache /home/appuser/.cache
+# Copy the entire codebase
+COPY . .
 
-COPY --from=builder /build/app /app/app
+# Build your production Go application binary
+RUN CGO_ENABLED=1 GOOS=linux go build -v -trimpath -ldflags="-w -s" -o app ./cmd/app/
 
-# FIX: Give appuser ownership of the /app directory so it can create logs.txt
-RUN chown -R appuser:appuser /app && \
-    chmod +x /app/app
+# Step 2: Create the final lightweight runtime container
+FROM alpine:latest
 
-EXPOSE 10000
+# Install runtime dependencies needed for streaming and processing
+RUN apk add --no-cache ca-certificates ffmpeg yt-dlp
 
-USER appuser
+WORKDIR /app
 
-ENTRYPOINT ["/app/app"]
+# Copy the compiled binary out of the builder step
+COPY --from=builder /app/app .
+
+# Expose a dummy port because Hugging Face monitors HTTP traffic on port 7860
+EXPOSE 7860
+
+# Run the Go bot binary
+CMD ["./app"]
