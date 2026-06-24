@@ -415,10 +415,15 @@ func (y *YtdlpPlatform) isYouTubeURL(urlStr string) bool {
 	return false
 }
 
-// downloadViaCobalt contacts alternate Cobalt infrastructure to bypass YouTube blocks
+// downloadViaCobalt queries dynamic infrastructure mirrors to stream raw files seamlessly
 func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string, destPath string) error {
-	// Switching to a more stable mirror node to prevent cloud processing blocks
-	apiEndpoint := "https://wuk.sh"
+	// A collection of active, high-availability public Cobalt endpoints
+	apiEndpoints := []string{
+		"https://cobalt.tools",
+		"https://wuk.sh",
+		"https://hyper.lol",
+		"https://cgm.rs",
+	}
 
 	reqPayload := CobaltRequest{
 		URL:          targetURL,
@@ -431,38 +436,61 @@ func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string,
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", apiEndpoint, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return err
-	}
-	
-	// Adding explicit browser headers so the proxy node accepts our request
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	var finalDownloadURL string
+	var lastErr error
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	// Loop through every single node mirror until one successfully processes the audio stream link
+	for _, endpoint := range apiEndpoints {
+		gologging.InfoF("YtDlp: Attempting stream extraction from Cobalt mirror: %s", endpoint)
+		
+		req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(jsonData))
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
-	var cobResp CobaltResponse
-	if err := json.NewDecoder(resp.Body).Decode(&cobResp); err != nil {
-		return fmt.Errorf("mirror response failed to decode: %w", err)
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		
+		var cobResp CobaltResponse
+		decodeErr := json.NewDecoder(resp.Body).Decode(&cobResp)
+		resp.Body.Close()
+
+		if decodeErr != nil {
+			lastErr = decodeErr
+			continue
+		}
+
+		if cobResp.Status == "error" || cobResp.URL == "" {
+			lastErr = fmt.Errorf("node error: %s", cobResp.Text)
+			continue
+		}
+
+		// Success endpoint located!
+		finalDownloadURL = cobResp.URL
+		break
 	}
 
-	if cobResp.Status == "error" || cobResp.URL == "" {
-		return fmt.Errorf("cobalt API mirror internal error: %s", cobResp.Text)
+	if finalDownloadURL == "" {
+		return fmt.Errorf("all cobalt server clusters failed to extract video stream. Last error: %v", lastErr)
 	}
 
-	fileReq, err := http.NewRequestWithContext(ctx, "GET", cobResp.URL, nil)
+	// Step 2: Stream the resolved raw media file directly into your bot storage allocation directory
+	fileReq, err := http.NewRequestWithContext(ctx, "GET", finalDownloadURL, nil)
 	if err != nil {
 		return err
 	}
 	fileReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
+	client := &http.Client{}
 	fileResp, err := client.Do(fileReq)
 	if err != nil {
 		return err
@@ -478,6 +506,10 @@ func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string,
 		return err
 	}
 	defer out.Close()
+
+	_, err = io.Copy(out, fileResp.Body)
+	return err
+}
 
 	_, err = io.Copy(out, fileResp.Body)
 	return err
