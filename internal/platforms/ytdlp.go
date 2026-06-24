@@ -415,9 +415,10 @@ func (y *YtdlpPlatform) isYouTubeURL(urlStr string) bool {
 	return false
 }
 
-// downloadViaCobalt contacts Cobalt infrastructure to generate an audio payload stream bypass
+// downloadViaCobalt contacts alternate Cobalt infrastructure to bypass YouTube blocks
 func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string, destPath string) error {
-	apiEndpoint := "https://cobalt.tools"
+	// Switching to a more stable mirror node to prevent cloud processing blocks
+	apiEndpoint := "https://wuk.sh"
 
 	reqPayload := CobaltRequest{
 		URL:          targetURL,
@@ -434,8 +435,11 @@ func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string,
 	if err != nil {
 		return err
 	}
+	
+	// Adding explicit browser headers so the proxy node accepts our request
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -446,17 +450,18 @@ func (y *YtdlpPlatform) downloadViaCobalt(ctx context.Context, targetURL string,
 
 	var cobResp CobaltResponse
 	if err := json.NewDecoder(resp.Body).Decode(&cobResp); err != nil {
-		return err
+		return fmt.Errorf("mirror response failed to decode: %w", err)
 	}
 
 	if cobResp.Status == "error" || cobResp.URL == "" {
-		return fmt.Errorf("cobalt API internal error: %s", cobResp.Text)
+		return fmt.Errorf("cobalt API mirror internal error: %s", cobResp.Text)
 	}
 
 	fileReq, err := http.NewRequestWithContext(ctx, "GET", cobResp.URL, nil)
 	if err != nil {
 		return err
 	}
+	fileReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
 
 	fileResp, err := client.Do(fileReq)
 	if err != nil {
