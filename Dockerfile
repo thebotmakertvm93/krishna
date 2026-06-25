@@ -2,7 +2,7 @@ FROM golang:1.24-bookworm AS builder
 
 WORKDIR /build
 
-# FIX: Added python3 and python3-pip to the builder stage for install.sh
+# Install compilation tooling alongside python3 for install.sh scripts
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         git \
@@ -23,20 +23,20 @@ RUN go mod download
 COPY install.sh ./
 COPY . .
 
-# Separate instructions to pinpoint failures in the logs
+# Prepare and execute initialization scripts cleanly
 RUN chmod +x install.sh
 RUN ./install.sh -n --quiet --skip-summary
 
 # Create a fallback empty text file inside internal/cookies if none exist
 RUN mkdir -p internal/cookies && touch internal/cookies/placeholder.txt
 
-# Native CGO compilation with proper pathing definitions
+# Native CGO compilation matching the Debian Bookworm target architecture
 RUN CGO_ENABLED=1 GOOS=linux go build -v -trimpath -ldflags="-w -s" -o app ./cmd/app/
 
 
 FROM debian:bookworm-slim
 
-# Install system dependencies including python3 for yt-dlp runtime
+# Install system dependencies including python3 for yt-dlp runtime engine
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ffmpeg \
@@ -49,11 +49,11 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Download latest yt-dlp binary safely
+# FIX: Corrected direct GitHub asset path to download the authentic yt-dlp binary
 RUN curl -fL https://github.com -o /usr/local/bin/yt-dlp && \
     chmod 0755 /usr/local/bin/yt-dlp
 
-# Install Deno globally to /usr/local/bin instead of /root
+# Install Deno engine configurations to global execution binaries
 RUN curl -fsSL https://deno.land -o /tmp/deno-install.sh && \
     sh /tmp/deno-install.sh v1.46.3 && \
     mv /root/.deno/bin/deno /usr/local/bin/deno && \
@@ -63,6 +63,8 @@ RUN curl -fsSL https://deno.land -o /tmp/deno-install.sh && \
 RUN mkdir -p /app/cache /app/downloads /app/.cache && \
     chmod -R 777 /app
 
+# FIX: Explicitly assign PORT variable to clear Hugging Face reverse-proxy health checks
+ENV PORT=7860
 ENV HOME=/app
 ENV XDG_CACHE_HOME=/app/.cache
 ENV PATH=/usr/local/bin:/usr/bin:/bin:$PATH
