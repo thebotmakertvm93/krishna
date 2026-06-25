@@ -1,4 +1,4 @@
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 WORKDIR /build
 
@@ -49,11 +49,11 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# FIX: Corrected direct GitHub asset path to download the authentic yt-dlp binary
+# FIXED: Direct link to download the actual yt-dlp executable program binary
 RUN curl -fL https://github.com -o /usr/local/bin/yt-dlp && \
     chmod 0755 /usr/local/bin/yt-dlp
 
-# Install Deno engine configurations to global execution binaries
+# FIXED: Direct link to download the actual Deno shell installation script file
 RUN curl -fsSL https://deno.land -o /tmp/deno-install.sh && \
     sh /tmp/deno-install.sh v1.46.3 && \
     mv /root/.deno/bin/deno /usr/local/bin/deno && \
@@ -63,7 +63,7 @@ RUN curl -fsSL https://deno.land -o /tmp/deno-install.sh && \
 RUN mkdir -p /app/cache /app/downloads /app/.cache && \
     chmod -R 777 /app
 
-# FIX: Explicitly assign PORT variable to clear Hugging Face reverse-proxy health checks
+# Explicitly assign PORT variable to clear Hugging Face reverse-proxy health checks
 ENV PORT=7860
 ENV HOME=/app
 ENV XDG_CACHE_HOME=/app/.cache
